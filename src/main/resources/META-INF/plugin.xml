@@ -1,0 +1,35 @@
+<idea-plugin>
+    <id>com.mobeetest.openallfiles</id>
+    <name>Analyze Folder Files</name>
+    <version>0.3.0</version>
+    <vendor>Mobeetest</vendor>
+
+    <description><![CDATA[
+        Adds Analyze menu actions for opening all files or analyzing a selected folder and opening only bad files.
+    ]]></description>
+
+    <idea-version since-build="223"/>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <actions>
+        <action
+                id="com.mobeetest.openallfiles.AnalyzeOpenAllFilesAction"
+                class="com.mobeetest.openallfiles.AnalyzeOpenAllFilesAction"
+                text="Open All Files"
+                description="Open all non-binary files under the selected folder recursively">
+            <add-to-group group-id="AnalyzeMenu" anchor="after" relative-to-action="InspectCode"/>
+        </action>
+
+        <action
+                id="com.mobeetest.openallfiles.AnalyzeOpenBadFilesAction"
+                class="com.mobeetest.openallfiles.AnalyzeOpenBadFilesAction"
+                text="Open Bad Files"
+                description="Run inspections for the selected folder and open the bad files">
+            <add-to-group
+                    group-id="AnalyzeMenu"
+                    anchor="after"
+                    relative-to-action="com.mobeetest.openallfiles.AnalyzeOpenAllFilesAction"/>
+        </action>
+    </actions>
+</idea-plugin>
