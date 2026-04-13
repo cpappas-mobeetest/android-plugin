@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>com.mobeetest.openallfiles</id>
     <name>Analyze Folder Files</name>
-    <version>0.3.0</version>
+    <version>0.4.0</version>
     <vendor>Mobeetest</vendor>
 
     <description><![CDATA[
@@ -13,19 +13,33 @@
     <depends>com.intellij.modules.platform</depends>
 
     <actions>
+        <!-- Simplest: close already-open files under the selected folder -->
+        <action
+                id="com.mobeetest.openallfiles.AnalyzeCloseAllFilesAction"
+                class="com.mobeetest.openallfiles.AnalyzeCloseAllFilesAction"
+                text="Close All Files"
+                description="Close all open editor tabs whose files are under the selected folder recursively">
+            <add-to-group group-id="AnalyzeMenu" anchor="after" relative-to-action="InspectCode"/>
+        </action>
+
+        <!-- Medium: open every file under the selected folder -->
         <action
                 id="com.mobeetest.openallfiles.AnalyzeOpenAllFilesAction"
                 class="com.mobeetest.openallfiles.AnalyzeOpenAllFilesAction"
                 text="Open All Files"
                 description="Open all non-binary files under the selected folder recursively">
-            <add-to-group group-id="AnalyzeMenu" anchor="after" relative-to-action="InspectCode"/>
+            <add-to-group
+                    group-id="AnalyzeMenu"
+                    anchor="after"
+                    relative-to-action="com.mobeetest.openallfiles.AnalyzeCloseAllFilesAction"/>
         </action>
 
+        <!-- Most complex: open only files that have at least one error / warning / notice / spelling issue -->
         <action
                 id="com.mobeetest.openallfiles.AnalyzeOpenBadFilesAction"
                 class="com.mobeetest.openallfiles.AnalyzeOpenBadFilesAction"
                 text="Open Bad Files"
-                description="Run inspections for the selected folder and open the bad files">
+                description="Run inspections for the selected folder and open only files with errors, warnings, notices or spelling issues">
             <add-to-group
                     group-id="AnalyzeMenu"
                     anchor="after"

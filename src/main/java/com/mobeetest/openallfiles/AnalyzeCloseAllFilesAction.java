@@ -58,6 +58,6 @@ public final class AnalyzeCloseAllFilesAction extends DumbAwareAction {
                     "Closed " + toClose.size() + " file(s) from:\n" + root.getPath(),
                     "Close All Files"
             );
-        }, project.getDisposed());
+        });
     }
 }

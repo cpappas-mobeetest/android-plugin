@@ -1,5 +1,7 @@
 package com.mobeetest.openallfiles;
 
+import com.intellij.codeInsight.daemon.impl.HighlightInfo;
+import com.intellij.lang.annotation.HighlightSeverity;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
@@ -166,23 +168,38 @@ public final class AnalyzeOpenBadFilesAction extends AbstractFolderFilesAction {
     }
 
     private static int getEditorHighlighterCount(@NotNull FileEditorManager editorManager, @NotNull VirtualFile file) {
-        TextEditor textEditor = null;
-        for (FileEditor ed : editorManager.getEditors(file)) {
-            if (ed instanceof TextEditor) {
-                textEditor = (TextEditor) ed;
-                break;
+        int[] result = {0};
+        ApplicationManager.getApplication().runReadAction(() -> {
+            TextEditor textEditor = null;
+            for (FileEditor ed : editorManager.getEditors(file)) {
+                if (ed instanceof TextEditor) {
+                    textEditor = (TextEditor) ed;
+                    break;
+                }
             }
-        }
-        if (textEditor == null) return 0;
+            if (textEditor == null) return;
 
-        Editor editor = textEditor.getEditor();
-        if (editor.isDisposed()) return 0;
+            Editor editor = textEditor.getEditor();
+            if (editor.isDisposed()) return;
 
-        RangeHighlighter[] hs = editor.getMarkupModel().getAllHighlighters();
-        return hs == null ? 0 : hs.length;
+            RangeHighlighter[] hs = editor.getMarkupModel().getAllHighlighters();
+            if (hs == null) return;
+
+            for (RangeHighlighter h : hs) {
+                HighlightInfo info = HighlightInfo.fromRangeHighlighter(h);
+                // Count only real diagnostics: errors, warnings, weak warnings, notices,
+                // typos/spelling – anything at INFORMATION severity or above.
+                // TEXT_ATTRIBUTES ranges are purely cosmetic and excluded.
+                if (info != null && info.getSeverity().compareTo(HighlightSeverity.INFORMATION) >= 0) {
+                    result[0]++;
+                }
+            }
+        });
+        return result[0];
     }
 
     private static boolean looksLikeHasTyposFast(@NotNull VirtualFile file) {
+        if (TYPO_TOKENS.isEmpty()) return false;
         try {
             byte[] bytes = VfsUtilCore.loadBytes(file);
             if (bytes.length == 0) return false;
@@ -193,23 +210,10 @@ public final class AnalyzeOpenBadFilesAction extends AbstractFolderFilesAction {
             for (String tok : TYPO_TOKENS) {
                 if (text.contains(tok)) return true;
             }
-
-            // Generic signal: lots of Greek => likely to have spelling signals in comments
-            return countGreekLetters(text) >= 60;
+            return false;
         } catch (Exception ignored) {
             return false;
         }
-    }
-
-    private static int countGreekLetters(@NotNull String text) {
-        int count = 0;
-        for (int i = 0; i < text.length(); i++) {
-            char ch = text.charAt(i);
-            if ((ch >= 0x0370 && ch <= 0x03FF) || (ch >= 0x1F00 && ch <= 0x1FFF)) {
-                count++;
-            }
-        }
-        return count;
     }
 
     private @NotNull List<VirtualFile> collectRelevantFiles(
