@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>com.mobeetest.openallfiles</id>
     <name>Analyze Folder Files</name>
-    <version>0.4.0</version>
+    <version>0.5.0</version>
     <vendor>Mobeetest</vendor>
 
     <description><![CDATA[

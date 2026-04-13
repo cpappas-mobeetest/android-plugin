@@ -31,7 +31,8 @@ public final class AnalyzeOpenBadFilesAction extends AbstractFolderFilesAction {
     private static final int MAX_FILES_TO_CONSIDER = 2000;
 
     // settle tuning
-    private static final long SETTLE_MAX_MS = 2500;       // max wait per file
+    private static final long SETTLE_MAX_MS = 5000;       // max wait per file
+    private static final long SETTLE_MIN_WAIT_MS = 1000;  // minimum wait before a stable count is trusted
     private static final long SETTLE_POLL_MS = 250;       // poll interval
     private static final int SETTLE_STABLE_POLLS = 3;     // require N identical polls
 
@@ -149,10 +150,14 @@ public final class AnalyzeOpenBadFilesAction extends AbstractFolderFilesAction {
             indicator.checkCanceled();
 
             int current = getEditorHighlighterCount(editorManager, file);
+            long elapsed = System.currentTimeMillis() - start;
 
             if (current == last) {
                 stable++;
-                if (stable >= SETTLE_STABLE_POLLS) {
+                // Only trust a stable count once we have waited long enough for the daemon
+                // to start its first analysis pass.  Without this guard the loop can exit
+                // with 0 after just 3×250 ms = 750 ms, before any inspections have run.
+                if (stable >= SETTLE_STABLE_POLLS && elapsed >= SETTLE_MIN_WAIT_MS) {
                     return current;
                 }
             } else {
@@ -187,10 +192,13 @@ public final class AnalyzeOpenBadFilesAction extends AbstractFolderFilesAction {
 
             for (RangeHighlighter h : hs) {
                 HighlightInfo info = HighlightInfo.fromRangeHighlighter(h);
-                // Count only real diagnostics: errors, warnings, weak warnings, notices,
-                // typos/spelling – anything at INFORMATION severity or above.
-                // TEXT_ATTRIBUTES ranges are purely cosmetic and excluded.
-                if (info != null && info.getSeverity().compareTo(HighlightSeverity.INFORMATION) >= 0) {
+                // Include every real diagnostic: ERROR, WARNING, WEAK_WARNING, INFORMATION,
+                // TYPO (spell-check, value 8) and any custom severity above TEXT_ATTRIBUTES.
+                // TEXT_ATTRIBUTES (value -1) are purely cosmetic syntax-colouring ranges and
+                // must be excluded.  We therefore check strictly > TEXT_ATTRIBUTES rather than
+                // >= INFORMATION, because TYPO (value 8) is below INFORMATION (value 10) and
+                // would otherwise be missed.
+                if (info != null && info.getSeverity().compareTo(HighlightSeverity.TEXT_ATTRIBUTES) > 0) {
                     result[0]++;
                 }
             }
